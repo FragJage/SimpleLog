@@ -61,20 +61,40 @@ void SimpleLog::SetWriter(IWriter *writer)
     m_Writer = writer;
 }
 
-void SimpleLog::Log(SimpleLog::Level level, const string& message, const string& module, int line, const string& function)
+void SimpleLog::AddWriter(IWriter *writer, IFilter *filter)
+{
+    if(writer == nullptr) return;
+    if(filter == nullptr)
+        m_SupWriters.emplace_back(m_Filter, writer);
+    else
+        m_SupWriters.emplace_back(filter, writer);
+}
+
+void SimpleLog::Log(SimpleLog::Level level, const string& message, const string& moduleName, int lineNumber, const string& functionName)
 {
 	size_t found;
 	string onlyModule;
 
-	found = module.find_last_of("/\\");
-	onlyModule = module.substr(found + 1);
+	found = moduleName.find_last_of("/\\");
+	onlyModule = moduleName.substr(found + 1);
 
-	if (m_Filter->Filter(level, message, onlyModule, line, function)) m_Writer->Writer(level, message, onlyModule, line, function);
+	if (m_Filter->Filter(level, message, onlyModule, lineNumber, functionName)) m_Writer->Writer(level, message, onlyModule, lineNumber, functionName);
+
+	list<SupWriter>::const_iterator it = m_SupWriters.cbegin();
+	list<SupWriter>::const_iterator itEnd = m_SupWriters.cend();
+	while(it!=itEnd)
+    {
+        if(it->Filter->Filter(level, message, onlyModule, lineNumber, functionName))
+        {
+            it->Writer->Writer(level, message, onlyModule, lineNumber, functionName);
+        }
+        ++it;
+    }
 }
 
-SimpleLog::Line SimpleLog::LogOut(SimpleLog* log, SimpleLog::Level level, const string& module, int line, const string& function)
+SimpleLog::Line SimpleLog::LogOut(SimpleLog* log, SimpleLog::Level level, const string& moduleName, int lineNumber, const string& functionName)
 {
-	return Line(log, level, module, line, function);
+	return Line(log, level, moduleName, lineNumber, functionName);
 }
 
 void SimpleLog::Flush()
@@ -239,5 +259,6 @@ void SimpleLog::DefaultWriter::Writer(SimpleLog::Level level, const std::string&
 
 void SimpleLog::DefaultWriter::Flush()
 {
+    m_stream->flush();
 	return;
 }

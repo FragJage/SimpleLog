@@ -35,9 +35,10 @@ class SimpleLog
 		~SimpleLog();
 		void SetFilter(IFilter *filter);
 		void SetWriter(IWriter *writer);
-		void Log(Level level, const std::string& message, const std::string& module, int line, const std::string& function);
+		void AddWriter(IWriter *writer, IFilter *filter=nullptr);
+		void Log(Level level, const std::string& message, const std::string& moduleName, int lineNumber, const std::string& functionName);
 		void Flush();
-		Line LogOut(SimpleLog* log, Level level, const std::string& module, int line, const std::string& function);
+		Line LogOut(SimpleLog* log, Level level, const std::string& moduleName, int lineNumber, const std::string& functionName);
 		static std::string Level2String(Level level);
 
 	private:
@@ -45,6 +46,13 @@ class SimpleLog
 		IWriter *m_Writer;
 		DefaultFilter *m_DefaultFilter;
 		DefaultWriter *m_DefaultWriter;
+		struct SupWriter
+        {
+            SupWriter(IFilter *filter, IWriter *writer) : Filter(filter), Writer(writer) {};
+            IFilter *Filter;
+            IWriter *Writer;
+        };
+        std::list<SupWriter> m_SupWriters;
 };
 
 class SimpleLog::Line
